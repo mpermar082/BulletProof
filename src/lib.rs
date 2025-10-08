@@ -9,10 +9,12 @@ use std::fs;
 use std::path::Path;
 
 // Define a custom result type for clarity and convenience
+/// Custom result type with error handling
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 /// Represents the result of processing data
 #[derive(Debug, Serialize, Deserialize)]
+/// Processing result with success status, message, and optional data
 pub struct ProcessResult {
     /// Whether the processing was successful
     pub success: bool,
@@ -24,6 +26,7 @@ pub struct ProcessResult {
 
 /// The main BulletProof processor
 #[derive(Debug)]
+/// BulletProof processor with verbosity and processed item count
 pub struct BulletProofProcessor {
     /// Whether to log verbose output
     pub verbose: bool,
@@ -33,6 +36,8 @@ pub struct BulletProofProcessor {
 
 impl BulletProofProcessor {
     /// Creates a new processor instance
+    /// # Arguments
+    /// * `verbose` - Whether to log verbose output
     pub fn new(verbose: bool) -> Self {
         Self {
             verbose,
@@ -41,6 +46,10 @@ impl BulletProofProcessor {
     }
 
     /// Processes a given piece of data
+    /// # Arguments
+    /// * `data` - The data to process
+    /// # Returns
+    /// A `Result` containing the processing result
     pub fn process(&mut self, data: &str) -> Result<ProcessResult> {
         if self.verbose {
             debug!("Processing data of length: {}", data.len());
@@ -63,50 +72,12 @@ impl BulletProofProcessor {
     }
 
     /// Returns statistics about the processor's state
+    /// # Returns
+    /// A JSON value containing processor statistics
     pub fn get_stats(&self) -> serde_json::Value {
         serde_json::json!({
             "processed_count": self.processed_count,
             "verbose": self.verbose
         })
     }
-}
-
-/// Main processing function
-pub fn run(verbose: bool, input: Option<String>, output: Option<String>) -> Result<()> {
-    // Initialize logging
-    if verbose {
-        env_logger::Builder::from_default_env()
-            .filter_level(log::LevelFilter::Debug)
-            .init();
-    } else {
-        env_logger::init();
-    }
-    
-    info!("Starting BulletProof processing");
-    
-    let mut processor = BulletProofProcessor::new(verbose);
-    
-    // Read input
-    let input_data = match input {
-        Some(path) => {
-            info!("Reading input from file: {}", path);
-            fs::read_to_string(path)?
-        }
-        None => {
-            info!("Using default input");
-            String::new()
-        }
-    };
-    
-    // Process the input data
-    for line in input_data.lines() {
-        let result = processor.process(line)?;
-        info!("Processing result: {}", serde_json::to_string(&result)?);
-    }
-    
-    // Return the final stats
-    let stats = processor.get_stats();
-    info!("Final stats: {}", serde_json::to_string(&stats)?);
-    
-    Ok(())
 }
